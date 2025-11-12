@@ -1,53 +1,71 @@
 ------------------------------------------------------------
--- DATABASE CREATION
+-- 1️⃣ RESET DATABASE (CLEAN START)
 ------------------------------------------------------------
+-- Drop database if it exists
+IF EXISTS (SELECT name FROM sys.databases WHERE name = 'CollegeDB')
+BEGIN
+    ALTER DATABASE CollegeDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE CollegeDB;
+END
+GO
+
+-- Create database
 CREATE DATABASE CollegeDB;
 GO
 
--- Use the created database
+-- Use the database
 USE CollegeDB;
 GO
 
 
 ------------------------------------------------------------
--- TABLE CREATION
+-- 2️⃣ DROP TABLES IF THEY EXIST (PREVENT OBJECT ERRORS)
 ------------------------------------------------------------
+IF OBJECT_ID('Enrollments', 'U') IS NOT NULL DROP TABLE Enrollments;
+IF OBJECT_ID('Students', 'U') IS NOT NULL DROP TABLE Students;
+IF OBJECT_ID('Courses', 'U') IS NOT NULL DROP TABLE Courses;
+GO
 
--- 1. Students Table
+
+------------------------------------------------------------
+-- 3️⃣ TABLE CREATION
+------------------------------------------------------------
+-- Students Table
 CREATE TABLE Students (
-    StudentID INT IDENTITY(1,1) PRIMARY KEY,  -- Auto-increment ID
+    StudentID INT IDENTITY(1,1) PRIMARY KEY,
     FirstName NVARCHAR(50) NOT NULL,
     LastName NVARCHAR(50) NOT NULL,
-    Email NVARCHAR(100) UNIQUE,
+    Email NVARCHAR(100) NOT NULL UNIQUE,  -- Prevent duplicates
     DateOfBirth DATE
 );
 GO
 
--- 2. Courses Table
+-- Courses Table
 CREATE TABLE Courses (
-    CourseID INT IDENTITY(1,1) PRIMARY KEY,   -- Auto-increment ID
+    CourseID INT IDENTITY(1,1) PRIMARY KEY,
     CourseName NVARCHAR(100) NOT NULL,
     CreditHours INT CHECK (CreditHours > 0),
     Department NVARCHAR(50)
 );
 GO
 
--- 3. Enrollments Table (links Students & Courses)
+-- Enrollments Table
 CREATE TABLE Enrollments (
     EnrollmentID INT IDENTITY(1,1) PRIMARY KEY,
-    StudentID INT NOT NULL FOREIGN KEY REFERENCES Students(StudentID),
-    CourseID INT NOT NULL FOREIGN KEY REFERENCES Courses(CourseID),
+    StudentID INT NOT NULL,
+    CourseID INT NOT NULL,
     EnrollmentDate DATE DEFAULT GETDATE(),
-    Grade NVARCHAR(5)
+    Grade NVARCHAR(5),
+    FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
+    FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
 );
 GO
 
 
 ------------------------------------------------------------
--- INSERT SAMPLE DATA
+-- 4️⃣ INSERT SAMPLE DATA (NO DUPLICATES)
 ------------------------------------------------------------
-
--- Insert data into Students
+-- Students
 INSERT INTO Students (FirstName, LastName, Email, DateOfBirth)
 VALUES 
 ('Ram', 'Thapa', 'ram.thapa@example.com', '2002-03-15'),
@@ -55,12 +73,7 @@ VALUES
 ('Hari', 'Koirala', 'hari.koirala@example.com', '2003-06-10');
 GO
 
--- View Students with their auto-generated IDs
-SELECT * FROM Students;
-GO
-
-
--- Insert data into Courses
+-- Courses
 INSERT INTO Courses (CourseName, CreditHours, Department)
 VALUES
 ('Database Systems', 3, 'Computer Science'),
@@ -68,13 +81,7 @@ VALUES
 ('Networking', 3, 'Computer Science');
 GO
 
--- View Courses with their IDs
-SELECT * FROM Courses;
-GO
-
-
--- Insert data into Enrollments
--- (Uses StudentID and CourseID values from the tables above)
+-- Enrollments
 INSERT INTO Enrollments (StudentID, CourseID, EnrollmentDate, Grade)
 VALUES
 (1, 1, '2024-01-10', 'A'),
@@ -84,10 +91,8 @@ GO
 
 
 ------------------------------------------------------------
--- RETRIEVE DATA (JOINS)
+-- 5️⃣ RETRIEVE DATA (JOINS)
 ------------------------------------------------------------
-
--- Show students with their enrolled courses and grades
 SELECT 
     s.StudentID,
     s.FirstName + ' ' + s.LastName AS StudentName,
@@ -101,25 +106,23 @@ GO
 
 
 ------------------------------------------------------------
--- UPDATE AND DELETE OPERATIONS
+-- 6️⃣ UPDATE AND DELETE OPERATIONS
 ------------------------------------------------------------
-
--- Update: change a student’s grade
+-- Update grade
 UPDATE Enrollments
 SET Grade = 'A+'
 WHERE EnrollmentID = 2;
 GO
 
--- Delete: remove a specific enrollment record
+-- Delete enrollment
 DELETE FROM Enrollments
 WHERE EnrollmentID = 3;
 GO
 
 
 ------------------------------------------------------------
--- FINAL VIEW AFTER CHANGES
+-- 7️⃣ FINAL VIEW AFTER CHANGES
 ------------------------------------------------------------
-
 SELECT 
     s.StudentID,
     s.FirstName,
@@ -130,4 +133,3 @@ FROM Enrollments AS e
 INNER JOIN Students AS s ON e.StudentID = s.StudentID
 INNER JOIN Courses AS c ON e.CourseID = c.CourseID;
 GO
-
